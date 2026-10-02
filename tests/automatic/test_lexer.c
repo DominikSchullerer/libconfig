@@ -15,6 +15,9 @@ static bool test_lexer_empty_buffer(void);
 static bool test_lexer_token_error(void);
 static bool test_lexer_token_delimiters(void);
 static bool test_lexer_token_punctuation(void);
+static bool test_lexer_skip_whitespace(void);
+static bool test_lexer_skip_comments(void);
+static bool test_lexer_skip_whitespace_and_comments(void);
 
 static bool match_token(
     token_t a,
@@ -59,6 +62,21 @@ bool test_lexer(void)
 
     if (!test_lexer_token_punctuation()) {
         printf("test_lexer_token_punctuation failed\n");
+        return false;
+    }
+
+    if (!test_lexer_skip_whitespace()) {
+        printf("test_lexer_skip_whitespace failed\n");
+        return false;
+    }
+
+    if (!test_lexer_skip_comments()) {
+        printf("test_lexer_skip_comments failed\n");
+        return false;
+    }
+
+    if (!test_lexer_skip_whitespace_and_comments()) {
+        printf("test_lexer_skip_whitespace_and_comments failed\n");
         return false;
     }
 
@@ -218,6 +236,59 @@ static bool test_lexer_token_punctuation(void)
     }
     token = lexer_next_token(lexer);
     if (match_token(token, TOKEN_EOF, 1, 5, "") == false) {
+        lexer_destroy(lexer);
+        return false;
+    }
+    lexer_destroy(lexer);
+    return true;
+}
+
+static bool test_lexer_skip_whitespace(void)
+{
+    lexer_t *lexer = NULL;
+    lexer_status_t status = lexer_create("   \n\t  ", &lexer);
+    if (status != LEXER_OK || lexer == NULL) {
+        printf("Expected LEXER_OK and non-NULL lexer, got %d and %p\n", status, (void *)lexer);
+        return false;
+    }
+    token_t token = lexer_next_token(lexer);
+    if (match_token(token, TOKEN_EOF, 2, 4, "") == false) {
+        lexer_destroy(lexer);
+        return false;
+    }
+    lexer_destroy(lexer);
+    return true;
+}
+
+static bool test_lexer_skip_comments(void)
+{
+    lexer_t *lexer = NULL;
+    lexer_status_t status = lexer_create("# This is a comment", &lexer);
+    if (status != LEXER_OK || lexer == NULL) {
+        printf("Expected LEXER_OK and non-NULL lexer, got %d and %p\n", status, (void *)lexer);
+        return false;
+    }
+    token_t token = lexer_next_token(lexer);
+
+    if (match_token(token, TOKEN_EOF, 1, 20, "") == false) {
+        lexer_destroy(lexer);
+        return false;
+    }
+    lexer_destroy(lexer);
+    return true;
+}
+
+static bool test_lexer_skip_whitespace_and_comments(void)
+{
+    lexer_t *lexer = NULL;
+    lexer_status_t status = lexer_create("   # This is a comment\n #This is another comment  ", &lexer);
+    if (status != LEXER_OK || lexer == NULL) {
+        printf("Expected LEXER_OK and non-NULL lexer, got %d and %p\n", status, (void *)lexer);
+        return false;
+    }   
+    token_t token = lexer_next_token(lexer);
+
+    if (match_token(token, TOKEN_EOF, 2, 28, "") == false) {
         lexer_destroy(lexer);
         return false;
     }

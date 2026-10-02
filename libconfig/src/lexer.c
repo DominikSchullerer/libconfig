@@ -22,13 +22,16 @@ struct lexer_t {
 // Function declarations
 ///////////////////////
 
-static char peek(lexer_t *lexer);
-static char advance(lexer_t *lexer);
+static char lexer_peek(lexer_t *lexer);
+static char lexer_advance(lexer_t *lexer);
+static char lexer_is_whitespace(char c);
 
-static bool scan_delimiter(lexer_t *lexer, token_t *token);
-static bool scan_punctuation(lexer_t *lexer, token_t *token);
+static void lexer_skip_trivia(lexer_t *lexer);
 
-static token_t make_token(lexer_t *lexer, token_type_t type);
+static bool lexer_scan_delimiter(lexer_t *lexer, token_t *token);
+static bool lexer_scan_punctuation(lexer_t *lexer, token_t *token);
+
+static token_t lexer_make_token(lexer_t *lexer, token_type_t type);
 
 ///////////////////////
 // API functions
@@ -66,39 +69,41 @@ void lexer_destroy(lexer_t *lexer)
 // TODO
 token_t lexer_next_token(lexer_t *lexer)
 {
+    lexer_skip_trivia(lexer);
+
     lexer->token_column = lexer->column;
     lexer->token_line = lexer->line;
     lexer->token_start = lexer->index;
 
+    if (lexer_peek(lexer) == '\0') {
+        return lexer_make_token(lexer, TOKEN_EOF);
+    }
+
     token_t token;
 
-    if (peek(lexer) == '\0') {
-        return make_token(lexer, TOKEN_EOF);
-    }
-
-    if (scan_delimiter(lexer, &token)) {
+    if (lexer_scan_delimiter(lexer, &token)) {
         return token;
     }
 
-    if (scan_punctuation(lexer, &token)) {
+    if (lexer_scan_punctuation(lexer, &token)) {
         return token;
     }
 
-	return make_token(lexer, TOKEN_ERROR);
+	return lexer_make_token(lexer, TOKEN_ERROR);
 }
 
 ///////////////////////
 // Static functions
 ///////////////////////
 
-static char peek(lexer_t *lexer)
+static char lexer_peek(lexer_t *lexer)
 {
     return lexer->buffer[lexer->index];
 }
 
-static char advance(lexer_t *lexer)
+static char lexer_advance(lexer_t *lexer)
 {
-    char c = peek(lexer);
+    char c = lexer_peek(lexer);
     if (c == '\0') {
         return c;
     }
@@ -116,9 +121,33 @@ static char advance(lexer_t *lexer)
     return c;
 }
 
-static bool scan_delimiter(lexer_t *lexer, token_t *token)
+static char lexer_is_whitespace(char c)
 {
-    char c = peek(lexer);
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+}
+
+static void lexer_skip_trivia(lexer_t *lexer)
+{
+    while (lexer_peek(lexer) != '\0') {
+        if (lexer_is_whitespace(lexer_peek(lexer))) {
+            lexer_advance(lexer);
+            continue;
+        }
+
+        if (lexer_peek(lexer) == '#') {
+            while (lexer_peek(lexer) != '\0' && lexer_peek(lexer) != '\n') {
+                lexer_advance(lexer);
+            }
+            continue;
+        }
+
+        return;
+    }
+}
+
+static bool lexer_scan_delimiter(lexer_t *lexer, token_t *token)
+{
+    char c = lexer_peek(lexer);
     token_type_t type;
 
     switch (c) {
@@ -144,14 +173,14 @@ static bool scan_delimiter(lexer_t *lexer, token_t *token)
             return false;
     }
 
-    advance(lexer);
-    *token = make_token(lexer, type);
+    lexer_advance(lexer);
+    *token = lexer_make_token(lexer, type);
     return true;;
 }
 
-static bool scan_punctuation(lexer_t *lexer, token_t *token)
+static bool lexer_scan_punctuation(lexer_t *lexer, token_t *token)
 {
-    char c = peek(lexer);
+    char c = lexer_peek(lexer);
     token_type_t type;
     switch (c) {
         case '=':
@@ -170,12 +199,12 @@ static bool scan_punctuation(lexer_t *lexer, token_t *token)
             return false;
     }
 
-    advance(lexer);
-    *token = make_token(lexer, type);
+    lexer_advance(lexer);
+    *token = lexer_make_token(lexer, type);
     return true;
 }
 
-static token_t make_token(lexer_t *lexer, token_type_t type)
+static token_t lexer_make_token(lexer_t *lexer, token_type_t type)
 {
     size_t length = lexer->index - lexer->token_start;
     stringview_t literal = { 
