@@ -2,6 +2,9 @@
 
 #include "lexer.h"
 
+///////////////////////
+// Type definitions
+///////////////////////
 
 struct lexer_t {
 	const char *buffer;
@@ -15,6 +18,16 @@ struct lexer_t {
 	size_t token_column;
 };
 
+///////////////////////
+// Function declarations
+///////////////////////
+
+static char peek(lexer_t *lexer);
+static token_t make_token(lexer_t *lexer, token_type_t type);
+
+///////////////////////
+// API functions
+///////////////////////
 
 lexer_status_t lexer_create(
 	const char *buffer,
@@ -48,7 +61,39 @@ void lexer_destroy(lexer_t *lexer)
 // TODO
 token_t lexer_next_token(lexer_t *lexer)
 {
-    (void)lexer;
-	return (token_t) { 0 };
+    lexer->token_column = lexer->column;
+    lexer->token_line = lexer->line;
+    lexer->token_start = lexer->index;
+
+    if (peek(lexer) == '\0') {
+        return make_token(lexer, TOKEN_EOF);
+    }
+
+	return make_token(lexer, TOKEN_ERROR);
+}
+
+///////////////////////
+// Static functions
+///////////////////////
+
+static char peek(lexer_t *lexer)
+{
+    return lexer->buffer[lexer->index];
+}
+
+static token_t make_token(lexer_t *lexer, token_type_t type)
+{
+    size_t length = lexer->index - lexer->token_start;
+    stringview_t literal = { 
+        .data = &lexer->buffer[lexer->token_start], 
+        .length = length 
+    };
+
+    return (token_t) {
+        .type = type,
+        .literal = literal,
+        .line = lexer->token_line,
+        .column = lexer->token_column
+    };
 }
 

@@ -39,6 +39,7 @@ target_link_libraries(libconfig_manual
 # Automatische Tests
 add_executable(libconfig_tests
     tests/automatic/main.c
+	tests/automatic/test_lexer.c
 )
 
 target_link_libraries(libconfig_tests
