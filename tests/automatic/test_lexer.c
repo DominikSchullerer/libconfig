@@ -13,6 +13,8 @@ static bool test_lexer_create(void);
 static bool test_lexer_create_invalid_arguments(void);
 static bool test_lexer_empty_buffer(void);
 static bool test_lexer_token_error(void);
+static bool test_lexer_token_delimiters(void);
+static bool test_lexer_token_punctuation(void);
 
 static bool match_token(
     token_t a,
@@ -47,6 +49,16 @@ bool test_lexer(void)
 
     if (!test_lexer_token_error()) {
         printf("test_lexer_token_error failed\n");
+        return false;
+    }
+
+    if (!test_lexer_token_delimiters()) {
+        printf("test_lexer_token_delimiters failed\n");
+        return false;
+    }
+
+    if (!test_lexer_token_punctuation()) {
+        printf("test_lexer_token_punctuation failed\n");
         return false;
     }
 
@@ -124,6 +136,91 @@ static bool test_lexer_token_error(void)
         return false;
     }
 
+    lexer_destroy(lexer);
+    return true;
+}
+
+static bool test_lexer_token_delimiters(void)
+{
+    lexer_t *lexer = NULL;
+    lexer_status_t status = lexer_create("{}[]()", &lexer);
+    if (status != LEXER_OK || lexer == NULL) {
+        printf("Expected LEXER_OK and non-NULL lexer, got %d and %p\n", status, (void *)lexer);
+        return false;
+    }
+
+    token_t token = lexer_next_token(lexer);
+    if (match_token(token, TOKEN_LBRACE, 1, 1, "{") == false) {
+        lexer_destroy(lexer);
+        return false;
+    }
+    token = lexer_next_token(lexer);
+    if (match_token(token, TOKEN_RBRACE, 1, 2, "}") == false) {
+        lexer_destroy(lexer);
+        return false;
+    }
+    token = lexer_next_token(lexer);
+    if (match_token(token, TOKEN_LBRACKET, 1, 3, "[") == false) {
+        lexer_destroy(lexer);
+        return false;
+    }
+    token = lexer_next_token(lexer);
+    if (match_token(token, TOKEN_RBRACKET, 1, 4, "]") == false) {
+        lexer_destroy(lexer);
+        return false;
+    }
+    token = lexer_next_token(lexer);
+    if (match_token(token, TOKEN_LPAREN, 1, 5, "(") == false) {
+        lexer_destroy(lexer);
+        return false;
+    }
+    token = lexer_next_token(lexer);
+    if (match_token(token, TOKEN_RPAREN, 1, 6, ")") == false) {
+        lexer_destroy(lexer);
+        return false;
+    }
+    token = lexer_next_token(lexer);
+    if (match_token(token, TOKEN_EOF, 1, 7, "") == false) {
+        lexer_destroy(lexer);
+        return false;
+    }
+    lexer_destroy(lexer);
+    return true;
+}
+
+static bool test_lexer_token_punctuation(void)
+{
+    lexer_t *lexer = NULL;
+    lexer_status_t status = lexer_create("=:;,", &lexer);
+    if (status != LEXER_OK || lexer == NULL) {
+        printf("Expected LEXER_OK and non-NULL lexer, got %d and %p\n", status, (void *)lexer);
+        return false;
+    }
+    token_t token = lexer_next_token(lexer);
+    if (match_token(token, TOKEN_EQUAL, 1, 1, "=") == false) {
+        lexer_destroy(lexer);
+        return false;
+    }
+    token = lexer_next_token(lexer);
+    if (match_token(token, TOKEN_COLON, 1, 2, ":") == false) {
+        lexer_destroy(lexer);
+        return false;
+    }
+    token = lexer_next_token(lexer);
+    if (match_token(token, TOKEN_SEMICOLON, 1, 3, ";") == false) {
+        lexer_destroy(lexer);
+        return false;
+    }
+    token = lexer_next_token(lexer);
+    if (match_token(token, TOKEN_COMMA, 1, 4, ",") == false) {
+        lexer_destroy(lexer);
+        return false;
+    }
+    token = lexer_next_token(lexer);
+    if (match_token(token, TOKEN_EOF, 1, 5, "") == false) {
+        lexer_destroy(lexer);
+        return false;
+    }
     lexer_destroy(lexer);
     return true;
 }
