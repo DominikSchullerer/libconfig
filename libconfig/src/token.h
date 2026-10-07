@@ -15,7 +15,8 @@ typedef enum token_type_t {
 	TOKEN_STRING,
 	TOKEN_INTEGER,
 	TOKEN_FLOAT,
-	TOKEN_BOOL,
+	TOKEN_TRUE,
+	TOKEN_FALSE,
 
 	// Delimiters
 	TOKEN_LBRACE,

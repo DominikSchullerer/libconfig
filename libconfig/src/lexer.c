@@ -30,6 +30,7 @@ static void lexer_skip_trivia(lexer_t *lexer);
 
 static bool lexer_scan_delimiter(lexer_t *lexer, token_t *token);
 static bool lexer_scan_punctuation(lexer_t *lexer, token_t *token);
+static bool lexer_scan_string(lexer_t *lexer, token_t *token);
 
 static token_t lexer_make_token(lexer_t *lexer, token_type_t type);
 
@@ -86,6 +87,10 @@ token_t lexer_next_token(lexer_t *lexer)
     }
 
     if (lexer_scan_punctuation(lexer, &token)) {
+        return token;
+    }
+
+    if (lexer_scan_string(lexer, &token)) {
         return token;
     }
 
@@ -201,6 +206,31 @@ static bool lexer_scan_punctuation(lexer_t *lexer, token_t *token)
 
     lexer_advance(lexer);
     *token = lexer_make_token(lexer, type);
+    return true;
+}
+
+static bool lexer_scan_string(lexer_t *lexer, token_t *token)
+{
+    char c = lexer_peek(lexer);
+    if (c != '"') {
+        return false;
+    }
+
+    lexer_advance(lexer);
+
+    while (lexer_peek(lexer) != '\0') {
+        c = lexer_advance(lexer);
+        if (c == '"') {
+            *token = lexer_make_token(lexer, TOKEN_STRING);
+            return true;
+        }
+        if (c == '\\') {
+            lexer_advance(lexer);
+        }
+    }
+
+    *token = lexer_make_token(lexer, TOKEN_ERROR);
+
     return true;
 }
 

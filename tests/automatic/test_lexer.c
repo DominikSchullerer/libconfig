@@ -18,6 +18,7 @@ static bool test_lexer_token_punctuation(void);
 static bool test_lexer_skip_whitespace(void);
 static bool test_lexer_skip_comments(void);
 static bool test_lexer_skip_whitespace_and_comments(void);
+static bool test_lexer_strings(void);
 
 static bool match_token(
     token_t a,
@@ -77,6 +78,11 @@ bool test_lexer(void)
 
     if (!test_lexer_skip_whitespace_and_comments()) {
         printf("test_lexer_skip_whitespace_and_comments failed\n");
+        return false;
+    }
+
+    if (!test_lexer_strings()) {
+        printf("test_lexer_strings failed\n");
         return false;
     }
 
@@ -293,6 +299,32 @@ static bool test_lexer_skip_whitespace_and_comments(void)
         return false;
     }
     lexer_destroy(lexer);
+    return true;
+}
+
+static bool test_lexer_strings(void)
+{
+    lexer_t *lexer = NULL;
+    lexer_status_t status = lexer_create("\n\"This is a string\"", &lexer);
+    if (status != LEXER_OK || lexer == NULL) {
+        printf("Expected LEXER_OK and non-NULL lexer, got %d and %p\n", status, (void *) lexer);
+        return false;
+    }
+
+    token_t token = lexer_next_token(lexer);
+    if (match_token(token, TOKEN_STRING, 2, 1, "\"This is a string\"") == false) {
+        lexer_destroy(lexer);
+        return false;
+    }
+
+    token = lexer_next_token(lexer);
+    if (match_token(token, TOKEN_EOF, 2, 19, "") == false) {
+        lexer_destroy(lexer);
+        return false;
+    }
+
+    lexer_destroy(lexer);
+
     return true;
 }
 
